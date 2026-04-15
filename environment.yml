@@ -10,6 +10,7 @@ dependencies:
   - wheel
   - pre-commit
   - gdal=3.8.3
+  - exactextract
   - pandas=2.2.3
   - matplotlib
   - numpy

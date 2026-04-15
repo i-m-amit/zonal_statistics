@@ -8,6 +8,7 @@ from solara.lab.components.theming import theme
 from component.model.app_model import AppModel
 from component.tile.upload import RasterMapWatcher
 from component.tile.upload import UploadTile
+from component.tile.projection import ProjectionSelector
 from component.widget.map import ZsMap
 
 logger = setup_logging(logger_name="zs")
@@ -54,7 +55,7 @@ def Page():
             "name": "2. Select Projection",
             "icon": "mdi-google-maps",
             "display": "dialog",
-            "content": None,
+            "content": ProjectionSelector(),
             "width": 800,
             "actions": [
                 {

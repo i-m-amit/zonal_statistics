@@ -7,9 +7,9 @@ import solara
 from pyproj import CRS
 from pyproj.exceptions import CRSError
 
-from core.state import app_state
+from component.model import app_state
 
-logger = logging.getLogger("zonal_stats_app.projection")
+logger = logging.getLogger("zs.projection")
 
 
 def validate_epsg(epsg_code: str) -> Optional[str]:
@@ -31,7 +31,7 @@ def validate_wkt(wkt_string: str) -> Optional[str]:
         return None
 
 
-@solara.component
+@solara.component #type: ignore
 def ProjectionSelector():
     """Component for selecting and managing projections"""
 
@@ -50,7 +50,7 @@ def ProjectionSelector():
 
             if app_state.vector_crs.value:
                 solara.Info(f"**Vector CRS**: {app_state.vector_crs.value}")
-            elif app_state.vector_path.value:
+            elif app_state.zone_file_path.value:
                 solara.Warning("Vector file has no CRS defined")
 
         # Projection selection mode
