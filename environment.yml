@@ -1,0 +1,20 @@
+name: zonal_stats
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.12
+  - sepal-ui
+  - pyproj  # Always include to avoid PROJ conflicts
+  - setuptools<=80
+  - wheel
+  - pre-commit
+  - gdal=3.8.3
+  - pandas=2.2.3
+  - matplotlib
+  - numpy
+  - geopandas=1.0.1
+  - natsort
+  - rasterio<=1.4.3
+  - pip:
+    - pandas
