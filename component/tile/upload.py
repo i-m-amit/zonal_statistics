@@ -266,7 +266,7 @@ def RasterUploadSection(is_loading: solara.Reactive[bool]):
         try:
             file_info_dict = get_file_info(file_path)
 
-            if "error" in file_info_dict:
+            if file_info_dict.get("error"):
                 app_state.file_error.value = file_info_dict["error"]
                 selected_file_path.value = None
                 selected_file_info_preview.value = None
@@ -348,7 +348,7 @@ def ZoneUploadSection():
         try:
             file_info_dict = get_file_info(file_path)
 
-            if "error" in file_info_dict:
+            if file_info_dict.get("error"):
                 app_state.zone_file_error.value = file_info_dict["error"]
                 selected_file_path.value = None
                 selected_file_info_preview.value = None
