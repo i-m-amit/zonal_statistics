@@ -205,3 +205,38 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# ─── Project-specific ───────────────────────────────────────
+
+# Compiled Python (explicit, in case template lines are edited)
+*.pyc
+*.pyo
+**/__pycache__/
+
+# OS
+.DS_Store
+Thumbs.db
+*~
+*.swp
+*.swo
+
+# Editors
+.idea/
+.vscode/
+
+# Logs (explicit — *.log above is under Django section)
+zonal_stats.log
+logs/
+excalidraw.log
+
+# Geospatial / runtime outputs
+outputs/
+results/
+tmp/
+*.tif.aux.xml
+*.tif.ovr
+*.shp.*.cpg
+
+# Solara / Jupyter runtime
+.solara/
+.jupyter/
