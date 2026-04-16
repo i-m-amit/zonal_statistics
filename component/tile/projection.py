@@ -40,16 +40,16 @@ def ProjectionSelector():
     wkt_input = solara.use_reactive("")
     validation_message = solara.use_reactive("")
 
-    with solara.Column(gap="20px"):
+    with solara.Column(gap="10px"):
         # Display current file projections
         with solara.Card("Current Projections", elevation=2):
-            if app_state.raster_crs.value:
-                solara.Info(f"**Raster CRS**: {app_state.raster_crs.value}")
+            if app_state.uploaded_file_info.value:
+                solara.Info(f"Input CRS: {app_state.uploaded_file_info.value.get('crs')}")
             else:
                 solara.Warning("No raster file loaded")
 
-            if app_state.vector_crs.value:
-                solara.Info(f"**Vector CRS**: {app_state.vector_crs.value}")
+            if app_state.zone_file_info.value:
+                solara.Info(f"Zone CRS: {app_state.zone_file_info.value.get('crs')}")
             elif app_state.zone_file_path.value:
                 solara.Warning("Vector file has no CRS defined")
 
@@ -144,31 +144,31 @@ def ProjectionSelector():
         with solara.Card("Quick Actions", elevation=2):
 
             def use_raster_crs():
-                if app_state.raster_crs.value:
-                    app_state.target_crs.value = app_state.raster_crs.value
+                if app_state.uploaded_file_info.value:
+                    app_state.target_crs.value = app_state.uploaded_file_info.value.get('crs')
                     validation_message.value = (
-                        f"✓ Using raster CRS: {app_state.raster_crs.value}"
+                        f"✓ Using raster CRS: {app_state.uploaded_file_info.value.get('crs')}"
                     )
 
             def use_vector_crs():
-                if app_state.vector_crs.value:
-                    app_state.target_crs.value = app_state.vector_crs.value
+                if app_state.zone_file_info.value:
+                    app_state.target_crs.value = app_state.zone_file_info.value.get('crs')
                     validation_message.value = (
-                        f"✓ Using vector CRS: {app_state.vector_crs.value}"
+                        f"✓ Using vector CRS: {app_state.zone_file_info.value.get('crs')}"
                     )
 
             with solara.Row():
                 solara.Button(
                     label="Use Raster CRS",
                     on_click=use_raster_crs,
-                    disabled=not app_state.raster_crs.value,
+                    disabled=not app_state.uploaded_file_info.value,
                     outlined=True,
                 )
 
                 solara.Button(
                     label="Use Vector CRS",
                     on_click=use_vector_crs,
-                    disabled=not app_state.vector_crs.value,
+                    disabled=not app_state.zone_file_info.value,
                     outlined=True,
                 )
 

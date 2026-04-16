@@ -376,35 +376,32 @@ def ZoneUploadSection():
             selected_file_info_preview.value = None
             is_valid_file.value = False
 
-    solara.Markdown(
-        """
-    Upload your zone boundaries as a vector file:
-    - **Shapefile** (.shp)
-    - **GeoJSON** (.geojson, .json)
-    - **GeoPackage** (.gpkg)
-    """
-    )
 
+    ZoneUploadInstructions()
     FileInputComponent(on_value=handle_file_selection)
 
     if app_state.zone_file_error.value:
         ErrorAlert(app_state.zone_file_error.value)
+        
+    if selected_file_info_preview.value:
+        FilePreview(selected_file_info_preview.value)
 
 
 @solara.component # type: ignore
 def UploadInstructions():
-    solara.Markdown("Upload the categorical raster to calculate the statistics")
+    solara.Markdown("Upload the raster to calculate the statistics")
 
 
 @solara.component # type: ignore
 def FileUploadInstructions():
     """Instructions for file upload formats."""
-    solara.Markdown(
-        """
-    Upload your input raster one of these formats:
-    - **Raster**: GeoTIFF (.tif), ERDAS Imagine (.img)
-    """
-    )
+    solara.Markdown("Upload your input raster")
+
+@solara.component # type : ignore
+def ZoneUploadInstructions():
+    """Instructions for zonal file upload formats."""
+    solara.Markdown("Upload your zone boundaries as a vector file:")
+    
 
 
 @solara.component # type: ignore

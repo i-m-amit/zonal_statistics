@@ -1,7 +1,7 @@
 import logging
 from typing import Any, Dict, List, Optional, Union
 from pathlib import Path
-import ipyleaflet as ipl
+#import ipyleaflet as ipl
 import solara
 from solara.alias import rv
 from sepal_ui.sepalwidgets.file_input import FileInputComponent
@@ -219,7 +219,7 @@ def UploadTile(zsmap: ZsMap):
                         )
                 else:
                     solara.Success("✅ Classification layer uploaded successfully!")
-        
+
         with solara.Card():
             solara.HTML(
                 tag="h3",
@@ -238,7 +238,7 @@ def UploadTile(zsmap: ZsMap):
                 )
 
 
-@solara.component
+@solara.component # type: ignore
 def RasterUploadSection(is_loading: solara.Reactive[bool]):
     """Simplified File Upload Section - No area computation"""
 
@@ -266,7 +266,7 @@ def RasterUploadSection(is_loading: solara.Reactive[bool]):
         try:
             file_info_dict = get_file_info(file_path)
 
-            if "error" in file_info_dict:
+            if file_info_dict.get("error"):
                 app_state.file_error.value = file_info_dict["error"]
                 selected_file_path.value = None
                 selected_file_info_preview.value = None
@@ -283,7 +283,7 @@ def RasterUploadSection(is_loading: solara.Reactive[bool]):
             app_state.file_error.value = str(e)
             selected_file_path.value = None
             selected_file_info_preview.value = None
-    
+
 
 
     def confirm_file_upload():
@@ -295,16 +295,16 @@ def RasterUploadSection(is_loading: solara.Reactive[bool]):
 
         try:
             is_loading.value = True
-            
+
             # Now update global state
             app_state.file_path.value = selected_file_path.value
             app_state.uploaded_file_info.value = selected_file_info_preview.value
-            
+
         except Exception as e:
             app_state.file_error.value = str(e)
         finally:
             is_loading.value = False
-    
+
     FileUploadInstructions()
     FileInputComponent(on_value=handle_file_selection)
 
@@ -348,7 +348,7 @@ def ZoneUploadSection():
         try:
             file_info_dict = get_file_info(file_path)
 
-            if "error" in file_info_dict:
+            if file_info_dict.get("error"):
                 app_state.zone_file_error.value = file_info_dict["error"]
                 selected_file_path.value = None
                 selected_file_info_preview.value = None
@@ -389,6 +389,9 @@ def ZoneUploadSection():
 
     if app_state.zone_file_error.value:
         ErrorAlert(app_state.zone_file_error.value)
+        
+    if selected_file_info_preview.value:
+        FilePreview(selected_file_info_preview.value)
 
 
 @solara.component # type: ignore
