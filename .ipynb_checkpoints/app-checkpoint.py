@@ -1,5 +1,21 @@
 """Zonal statsitics and Area tabulation """
+# ruff: noqa: E402
+# PROJ_DATA must be set before importing rasterio/pyproj to avoid CRS errors
+# when system PROJ_DATA points to an incompatible proj.db (e.g., in SEPAL)
+import os
+import sys
 
+env_prefix = sys.prefix
+proj_data = os.path.join(env_prefix, "share", "proj")
+if os.path.exists(proj_data):
+    os.environ["PROJ_LIB"] = proj_data
+    os.environ["PROJ_DATA"] = proj_data
+
+from pyproj import datadir
+
+if os.path.exists(proj_data):
+    datadir.set_data_dir(proj_data)
+    
 import solara
 from sepal_ui.logger import setup_logging
 from sepal_ui.sepalwidgets.vue_app import MapApp, ThemeToggle
@@ -8,6 +24,8 @@ from solara.lab.components.theming import theme
 from component.model.app_model import AppModel
 from component.tile.upload import RasterMapWatcher
 from component.tile.upload import UploadTile
+from component.tile.projection import ProjectionSelector
+from component.tile.stat_selection import StatsSelectionTile
 from component.widget.map import ZsMap
 
 logger = setup_logging(logger_name="zs")
@@ -54,7 +72,7 @@ def Page():
             "name": "2. Select Projection",
             "icon": "mdi-google-maps",
             "display": "dialog",
-            "content": None,
+            "content": ProjectionSelector(),
             "width": 800,
             "actions": [
                 {
@@ -70,7 +88,7 @@ def Page():
             "name": "3. Select Statistics",
             "icon": "mdi-chart-line",
             "display": "dialog",
-            "content":None,
+            "content":StatsSelectionTile(),
             "width": 800,
             "actions": [
                 {

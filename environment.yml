@@ -1,21 +1,21 @@
 name: zonal_stats
 channels:
   - conda-forge
-  - defaults
 dependencies:
   - python=3.12
   - sepal-ui
-  - pyproj  # Always include to avoid PROJ conflicts
-  - setuptools<=80
-  - wheel
-  - pre-commit
-  - gdal=3.8.3
-  - exactextract
-  - pandas=2.2.3
-  - matplotlib
-  - numpy
-  - geopandas=1.0.1
-  - natsort
-  - rasterio<=1.4.3
+  - python=3.12
+  - numpy>=1.24.0
+  - geopandas>=0.14.0
+  - pandas>=2.0.0
+  - shapely>=2.0.0
+  - fiona>=1.8.0
+  - scipy>=1.10.0
+  - xarray>=2023.1.0
+  - h5netcdf>=1.2.0
+  - pip
+  - rasterio
+  - pyproj
+  - exactextract>=0.3.0
   - pip:
     - pandas
