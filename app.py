@@ -26,6 +26,7 @@ from component.tile.upload import RasterMapWatcher
 from component.tile.upload import UploadTile
 from component.tile.projection import ProjectionSelector
 from component.tile.stat_selection import StatsSelectionTile
+from component.tile.results import ResultsTile
 from component.widget.map import ZsMap
 
 logger = setup_logging(logger_name="zs")
@@ -120,7 +121,7 @@ def Page():
             "name": "5. Export Results",
             "icon": "mdi-download",
             "display": "dialog",
-            "content":None,
+            "content":ResultsTile(zs_map),
             "width": 800,
             "actions": [
                 {
