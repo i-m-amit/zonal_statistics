@@ -7,10 +7,6 @@ import sys
 
 env_prefix = sys.prefix
 proj_data = os.path.join(env_prefix, "share", "proj")
-if os.path.exists(proj_data):
-    os.environ["PROJ_LIB"] = proj_data
-    os.environ["PROJ_DATA"] = proj_data
-
 from pyproj import datadir
 
 if os.path.exists(proj_data):
@@ -34,16 +30,16 @@ logger.debug("Zonal statistics app initialized")
 
 
 setup_solara_server()
-@solara.lab.on_kernel_start #type : ignore
+@solara.lab.on_kernel_start #type: ignore
 def on_kernel_start():
     return setup_sessions()
 
-@solara.component #type : ignore
+@solara.component #type: ignore
 #@with_sepal_sessions(module_name="area_tabulation")
 def Page():
     """ZS app using MapApp layout"""
     app_model = AppModel()
-    current_dialog, set_current = solara.use_state(1) #type : ignore
+    current_dialog, set_current = solara.use_state(1) #type: ignore
 
     setup_theme_colors()
     theme_toggle = ThemeToggle()
@@ -169,7 +165,7 @@ def Page():
     ]
 
     # Create the MapApp with the shared map instance
-    MapApp.element( #type : ignore
+    MapApp.element( #type: ignore
         app_title="Zonal Statistics and Area tabulation",
         app_icon="mdi-map-marker-radius",
         main_map=[zs_map],
@@ -179,13 +175,13 @@ def Page():
         dialog_width=800,
         right_panel_config=right_panel_config,
         right_panel_content=right_panel_content,
-        repo_url="https://github.com/your-repo/sbae-tool",
-        docs_url="https://your-docs-url.com/sbae",
+        repo_url="https://github.com/i-m-amit/zonal_stats",
+        docs_url="https://your-docs-url.com/zonal_stats",
         model=app_model,
     )
 
 
 # Routes for the application
 routes = [
-    solara.Route(path="/", component=Page, label="SBAE Tool"),
+    solara.Route(path="/", component=Page, label="ZonalStatTool Tool"),
 ]
