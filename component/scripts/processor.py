@@ -18,7 +18,9 @@ def run_zonal_statistics(
     vector_path: Optional[str],
     target_crs: Optional[str],
     statistics: List[str],
-    column_prefix: str = "value"
+    column_prefix: str = "value",
+    operation_args=None,
+    quantile_args=None 
 ) -> gpd.GeoDataFrame:
     """
     Run zonal statistics using exactextract
@@ -69,31 +71,32 @@ def run_zonal_statistics(
     #Column names to keep
     if not gdf.empty:
         column_names = list(gdf.drop(columns='geometry').columns)
-    # Map statistics names to exactextract format
-    stat_mapping = {
-        'mean': 'mean',
-        'sum': 'sum',
-        'count': 'count',
-        'min': 'min',
-        'max': 'max',
-        'median': 'median',
-        'std': 'stdev',
-        'variance': 'variance',
-        'coefficient_of_variation': 'coefficient_of_variation',
-        'majority': 'majority',
-        'minority': 'minority',
-        'variety': 'variety',
-    }
-
-    # Build stats list for exactextract
-    exact_stats = []
+    # Build stat strings with arguments
+    stat_strings = []
+    
     for stat in statistics:
-        if stat in stat_mapping:
-            exact_stats.append(stat_mapping[stat])
+        # Combine both quantile args and operation args
+        all_args = {}
+        
+        # Add quantile-specific args first
+        if stat == "quantile" and quantile_args:
+            all_args.update(quantile_args)
+        
+        # Add operation args (these apply to ALL stats)
+        if operation_args:
+            all_args.update(operation_args)
+        
+        # Build the stat string
+        if all_args:
+            # Format arguments: key=value, key=value
+            args_str = ", ".join([f"{k}={v}" for k, v in all_args.items()])
+            stat_str = f"{stat}({args_str})"
         else:
-            logger.warning(f"Unknown statistic: {stat}")
+            stat_str = stat
+        
+        stat_strings.append(stat_str)
 
-    logger.info(f"Running exactextract with stats: {exact_stats}")
+    logger.info(f"Running exactextract with stats: {stat_strings}")
 
     try:
         # Run exact_extract
@@ -101,7 +104,7 @@ def run_zonal_statistics(
         results = exact_extract(
             raster_path,
             gdf,
-            exact_stats,
+            stat_strings,
             include_cols=column_names,  # Include original columns
             output='pandas'
         )
@@ -113,7 +116,7 @@ def run_zonal_statistics(
         result_gdf = gdf.copy()
 
         # Add statistics columns
-        for stat in exact_stats:
+        for stat in statistics:
             if stat in results.columns:
                 result_gdf[f"{column_prefix}_{stat}"] = results[stat].values
 
