@@ -4,11 +4,9 @@ from pathlib import Path
 from typing import Dict, Optional
 
 import geopandas as gpd
-import numpy as np
-import pandas as pd
 import rasterio
-from rasterio.transform import xy
-
+from pyproj import Transformer
+from component.scripts.proj_util import Bounds
 def is_raster_file(file_path: str) -> bool:
     raster_extensions = {
         '.tif', '.tiff',
@@ -123,3 +121,17 @@ def get_file_info(file_path: str) -> Dict:
         info["error"] = str(e)
 
     return info
+
+def get_bounds_in_wgs84(crs_str:str,bounds:list[float])->Bounds:
+    """Takes a bound and crs and returns bounds in WGS84 """
+    if "4326" not in crs_str:
+        transformer = Transformer.from_crs(crs_str,"EPSG:4326", always_xy=True)
+        lon_min, lat_min = transformer.transform(bounds[0],bounds[1])
+        lon_max, lat_max = transformer.transform(bounds[2],bounds[3])
+    else:
+        lon_min, lat_min, lon_max, lat_max = bounds[0],bounds[1],bounds[2], bounds[3]
+    return Bounds(min_lon=lon_min,
+                  max_lon=lon_max, 
+                  min_lat=lat_min,
+                  max_lat=lat_max)
+

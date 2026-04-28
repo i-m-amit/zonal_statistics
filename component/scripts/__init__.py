@@ -8,6 +8,9 @@ from .geospatial import (
 from .tiling import (
     prepare_for_tiles,
 )
+
+from .proj_util import projection_template, Projection
+
 __all__ = [
     # Geospatial Processing
     "is_raster_file",
@@ -15,4 +18,6 @@ __all__ = [
     "save_uploaded_file",
     "get_file_info",
     "prepare_for_tiles",
+    "projection_template",
+    "Projection",
 ]
