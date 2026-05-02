@@ -7,38 +7,43 @@ import geopandas as gpd
 import rasterio
 from pyproj import Transformer
 from component.scripts.proj_util import Bounds
+
+
 def is_raster_file(file_path: str) -> bool:
     raster_extensions = {
-        '.tif', '.tiff',
-        '.img',
-        '.vrt',
-        '.asc',
-        '.grd',
-        '.ecw',
-        '.jp2',
-        '.sid',
+        ".tif",
+        ".tiff",
+        ".img",
+        ".vrt",
+        ".asc",
+        ".grd",
+        ".ecw",
+        ".jp2",
+        ".sid",
     }
     return Path(file_path).suffix.lower() in raster_extensions
 
+
 def is_vector_file(file_path: str) -> bool:
     vector_extensions = {
-        '.shp',            # Shapefile
-        '.geojson',        # GeoJSON
-        '.json',           # JSON (may contain GeoJSON)
-        '.gpkg',           # GeoPackage
-        '.kml',            # Keyhole Markup Language
-        '.kmz',            # Compressed KML
-        '.gml',            # Geography Markup Language
-        '.gpx',            # GPS Exchange Format
-        '.fgb',            # FlatGeobuf
-        '.csv',            # CSV (with geometry column)
-        '.tab',            # MapInfo TAB
-        '.mif',            # MapInfo Interchange Format
-        '.dwg',            # AutoCAD DWG
-        '.sqlite',         # SpatiaLite
-        '.db',             # SpatiaLite (alternate extension)
+        ".shp",  # Shapefile
+        ".geojson",  # GeoJSON
+        ".json",  # JSON (may contain GeoJSON)
+        ".gpkg",  # GeoPackage
+        ".kml",  # Keyhole Markup Language
+        ".kmz",  # Compressed KML
+        ".gml",  # Geography Markup Language
+        ".gpx",  # GPS Exchange Format
+        ".fgb",  # FlatGeobuf
+        ".csv",  # CSV (with geometry column)
+        ".tab",  # MapInfo TAB
+        ".mif",  # MapInfo Interchange Format
+        ".dwg",  # AutoCAD DWG
+        ".sqlite",  # SpatiaLite
+        ".db",  # SpatiaLite (alternate extension)
     }
     return Path(file_path).suffix.lower() in vector_extensions
+
 
 def save_uploaded_file(file_info, temp_dir: Optional[str] = None) -> str:
     """Save uploaded file to temporary directory.
@@ -92,28 +97,32 @@ def get_file_info(file_path: str) -> Dict:
     try:
         if is_raster_file(file_path):
             with rasterio.open(file_path) as raster:
-                info.update({
-                    "file_type": "raster",
-                    "crs": str(raster.crs) if raster.crs else None,
-                    "bounds": list(raster.bounds),
-                    "width": raster.width,
-                    "height": raster.height,
-                    "band_count": raster.count,
-                    "dtype": str(raster.dtypes[0]),
-                    "nodata": raster.nodata,
-                    "resolution": raster.res,
-                    "feature_count": raster.width * raster.height,
-                })
+                info.update(
+                    {
+                        "file_type": "raster",
+                        "crs": str(raster.crs) if raster.crs else None,
+                        "bounds": list(raster.bounds),
+                        "width": raster.width,
+                        "height": raster.height,
+                        "band_count": raster.count,
+                        "dtype": str(raster.dtypes[0]),
+                        "nodata": raster.nodata,
+                        "resolution": raster.res,
+                        "feature_count": raster.width * raster.height,
+                    }
+                )
         elif is_vector_file(file_path):
             gdf = gpd.read_file(file_path)
-            info.update({
-                "file_type": "vector",
-                "crs": str(gdf.crs) if gdf.crs else None,
-                "bounds": list(gdf.total_bounds),
-                "feature_count": len(gdf),
-                "geometry_type": gdf.geom_type.unique().tolist(),
-                "columns": gdf.columns.drop("geometry").tolist(),
-            })
+            info.update(
+                {
+                    "file_type": "vector",
+                    "crs": str(gdf.crs) if gdf.crs else None,
+                    "bounds": list(gdf.total_bounds),
+                    "feature_count": len(gdf),
+                    "geometry_type": gdf.geom_type.unique().tolist(),
+                    "columns": gdf.columns.drop("geometry").tolist(),
+                }
+            )
         else:
             info["error"] = f"Unsupported file type: {path.suffix}"
 
@@ -122,16 +131,18 @@ def get_file_info(file_path: str) -> Dict:
 
     return info
 
-def get_bounds_in_wgs84(crs_str:str,bounds:list[float])->Bounds:
-    """Takes a bound and crs and returns bounds in WGS84 """
-    if "4326" not in crs_str:
-        transformer = Transformer.from_crs(crs_str,"EPSG:4326", always_xy=True)
-        lon_min, lat_min = transformer.transform(bounds[0],bounds[1])
-        lon_max, lat_max = transformer.transform(bounds[2],bounds[3])
-    else:
-        lon_min, lat_min, lon_max, lat_max = bounds[0],bounds[1],bounds[2], bounds[3]
-    return Bounds(min_lon=lon_min,
-                  max_lon=lon_max, 
-                  min_lat=lat_min,
-                  max_lat=lat_max)
 
+def get_bounds_in_wgs84(file_info:Dict) -> Bounds:
+    """Takes a bound and crs and returns bounds in WGS84"""
+    crs_str = file_info.get('crs')
+    _bounds = file_info.get('bounds')
+    if crs_str and _bounds:
+        if "4326" not in crs_str:
+            transformer = Transformer.from_crs(crs_str, "EPSG:4326", always_xy=True)
+            lon_min, lat_min = transformer.transform(_bounds[0], _bounds[1])
+            lon_max, lat_max = transformer.transform(_bounds[2], _bounds[3])
+        else:
+            lon_min, lat_min, lon_max, lat_max = _bounds[0], _bounds[1], _bounds[2], _bounds[3]
+        return Bounds(min_lon=lon_min, max_lon=lon_max, min_lat=lat_min, max_lat=lat_max)
+    else:
+        return Bounds(min_lon=-180, max_lon=180,min_lat=-90,max_lat=90)

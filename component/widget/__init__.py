@@ -1,3 +1,3 @@
 from .map import ZsMap
-
-__all__ = ["ZsMap"]
+from .projection_checkbox import ProjectionRadioList
+__all__ = ["ZsMap","ProjectionRadioList"]

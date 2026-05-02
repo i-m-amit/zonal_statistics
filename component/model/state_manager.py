@@ -6,6 +6,7 @@ import tempfile
 from typing import Dict, List, Optional, Any
 import geopandas as gpd
 import pandas as pd
+from pandas.core.computation.ops import Op
 import solara
 
 
@@ -42,7 +43,9 @@ class AppState:
         self.raster_crs = solara.reactive(None)
         self.vector_crs: solara.Reactive[Optional[str]] = solara.reactive(None)
         self.target_crs: solara.Reactive[Optional[str]] = solara.reactive(None)
-        self.use_epsg = solara.reactive(True)
+        #self.use_epsg = solara.reactive(True)
+        self.proj_method: solara.Reactive[str] = solara.reactive("EPSG")
+        self.distortion: solara.Reactive[str] = solara.reactive("equal-area")
 
         # -----------------------------
         # Statistics configuration
@@ -113,7 +116,10 @@ class AppState:
         self.raster_crs.value = None
         self.vector_crs.value = None
         self.target_crs.value = None
-        self.use_epsg.value = True
+        #self.use_epsg.value = True
+        self.proj_method.value = "EPSG"
+        self.distortion.value = "equal-area"
+
 
         # Stats config
         self.selected_stats.value = ["mean", "sum", "count", "min", "max"]

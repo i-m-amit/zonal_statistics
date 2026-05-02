@@ -3,6 +3,29 @@ from typing import List, Dict
 
 
 @dataclass
+class Bounds:
+    min_lon: float
+    max_lon: float
+    min_lat: float
+    max_lat: float
+
+    @property
+    def lon_span(self) -> float:
+        # Handles the anti-meridian wrap-around correctly
+        return (self.max_lon - self.min_lon) % 360 or (
+            360.0 if self.max_lon != self.min_lon else 0.0
+        )
+
+    @property
+    def lat_span(self) -> float:
+        return abs(self.max_lat - self.min_lat)
+
+    @property
+    def center(self) -> tuple[float, float]:
+        return (self.min_lon + self.max_lon) / 2, (self.min_lat + self.max_lat) / 2
+
+
+@dataclass
 class Projection:
     name: str
     proj4_template: str
@@ -76,15 +99,6 @@ projection_template = [
         suitable_latitude=["any"],
     ),
     # Regional /Large scale
-    #
-    Projection(
-        name="Lambert Azimuthal Equal Area",
-        proj4_template="+proj=laea +lat_0={lat_0} +lon_0={central_meridian} +ellps=WGS84 +datum=WGS84 +no_defs",
-        distortion_type="equal-area",
-        suitable_extent=["hemisphere", "continental"],
-        suitable_shape=["square"],
-        suitable_latitude=["any"],
-    ),
     Projection(
         name="Albers Equal-Area Conic",
         proj4_template="+proj=aea +lat_1={lat_1} +lat_2={lat_2} +lon_0={central_meridian} +ellps=WGS84 +datum=WGS84 +no_defs",

@@ -9,7 +9,7 @@ from .tiling import (
     prepare_for_tiles,
 )
 
-from .proj_util import projection_template, Projection
+from .proj_util import projection_template, Projection, Bounds
 
 __all__ = [
     # Geospatial Processing
@@ -20,4 +20,5 @@ __all__ = [
     "prepare_for_tiles",
     "projection_template",
     "Projection",
+    "Bounds",
 ]

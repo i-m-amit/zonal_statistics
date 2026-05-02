@@ -8,6 +8,9 @@ from pyproj import CRS
 from pyproj.exceptions import CRSError
 
 from component.model import app_state
+from component.scripts.proj_recommendation import ProjectionRecommender
+from component.scripts.geospatial import get_bounds_in_wgs84
+from component.widget.projection_checkbox import ProjectionRadioList
 
 logger = logging.getLogger("zs.projection")
 
@@ -26,12 +29,12 @@ def validate_wkt(wkt_string: str) -> Optional[str]:
     """Validate WKT string and return it if valid or None"""
     try:
         crs = CRS.from_wkt(wkt_string)
-        return crs.to_wkt()
+        return crs.to_wkt(pretty=True)
     except CRSError as e:
         return None
 
 
-@solara.component #type: ignore
+@solara.component  # type: ignore
 def ProjectionSelector():
     """Component for selecting and managing projections"""
 
@@ -44,7 +47,9 @@ def ProjectionSelector():
         # Display current file projections
         with solara.Card("Current Projections", elevation=2):
             if app_state.uploaded_file_info.value:
-                solara.Info(f"Input CRS: {app_state.uploaded_file_info.value.get('crs')}")
+                solara.Info(
+                    f"Input CRS: {app_state.uploaded_file_info.value.get('crs')}"
+                )
             else:
                 solara.Warning("No raster file loaded")
 
@@ -63,18 +68,15 @@ def ProjectionSelector():
             # Radio button for selection mode
             solara.Select(
                 label="Input Method",
-                value="EPSG" if app_state.use_epsg.value else "WKT",
-                values=["EPSG", "WKT"],
-                on_value=lambda v: app_state.use_epsg.set(v == "EPSG"),
+                value=app_state.proj_method.value,
+                values=["EPSG", "WKT", "Get recommendation"],
+                on_value=app_state.proj_method.set,
             )
 
-            if app_state.use_epsg.value:
+            if app_state.proj_method.value == "EPSG":
                 # EPSG input
                 with solara.Column():
                     solara.Markdown("**Enter EPSG Code**")
-                    solara.Markdown(
-                        "Common projections: 4326 (WGS84), 3857 (Web Mercator), 32633 (UTM Zone 33N)"
-                    )
 
                     solara.InputText(
                         label="EPSG Code",
@@ -101,7 +103,7 @@ def ProjectionSelector():
                         disabled=not epsg_input.value,
                     )
 
-            else:
+            elif app_state.proj_method.value == "WKT":
                 # WKT input
                 with solara.Column():
                     solara.Markdown("**Enter WKT String**")
@@ -132,6 +134,22 @@ def ProjectionSelector():
                         color="primary",
                         disabled=not wkt_input.value,
                     )
+            else:
+                with solara.Column():
+                    solara.Select(
+                        label="Distortion type",
+                        values=["Equal-area", "Conformal", "Equidistant", "Compromise"],
+                        value=app_state.distortion.value,
+                        on_value=app_state.distortion.set,
+                        disabled=app_state.proj_method.value != "Get recommendation"
+                    )
+                    if app_state.uploaded_file_info.value:
+                        recommender = ProjectionRecommender(
+                            get_bounds_in_wgs84(app_state.uploaded_file_info.value)
+                        )
+                        recommended_projs = recommender.recommond_projections(app_state.distortion.value)
+                        if recommended_projs:
+                            ProjectionRadioList(recommended_projs)
 
             # Validation message
             if validation_message.value:
@@ -145,17 +163,17 @@ def ProjectionSelector():
 
             def use_raster_crs():
                 if app_state.uploaded_file_info.value:
-                    app_state.target_crs.value = app_state.uploaded_file_info.value.get('crs')
-                    validation_message.value = (
-                        f"✓ Using raster CRS: {app_state.uploaded_file_info.value.get('crs')}"
+                    app_state.target_crs.value = app_state.uploaded_file_info.value.get(
+                        "crs"
                     )
+                    validation_message.value = f"✓ Using raster CRS: {app_state.uploaded_file_info.value.get('crs')}"
 
             def use_vector_crs():
                 if app_state.zone_file_info.value:
-                    app_state.target_crs.value = app_state.zone_file_info.value.get('crs')
-                    validation_message.value = (
-                        f"✓ Using vector CRS: {app_state.zone_file_info.value.get('crs')}"
+                    app_state.target_crs.value = app_state.zone_file_info.value.get(
+                        "crs"
                     )
+                    validation_message.value = f"✓ Using vector CRS: {app_state.zone_file_info.value.get('crs')}"
 
             with solara.Row():
                 solara.Button(
@@ -176,11 +194,6 @@ def ProjectionSelector():
         if app_state.target_crs.value:
             with solara.Success("Target CRS set"):
                 try:
-                    crs = CRS.from_string(app_state.target_crs.value)
-                    solara.Markdown(f"""
-                    **{app_state.target_crs.value}**
-
-                    {crs.name}
-                    """)
+                    solara.Markdown(f"```{app_state.target_crs.value}```")
                 except Exception as e:
                     solara.Markdown(f"Error {e} in **{app_state.target_crs.value}**")
