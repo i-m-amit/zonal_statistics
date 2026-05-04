@@ -297,8 +297,8 @@ def RasterUploadSection(is_loading: solara.Reactive[bool]):
             is_loading.value = True
 
             # Now update global state
-            app_state.file_path.value = selected_file_path.value
             app_state.uploaded_file_info.value = selected_file_info_preview.value
+            app_state.file_path.value = selected_file_path.value
 
         except Exception as e:
             app_state.file_error.value = str(e)
