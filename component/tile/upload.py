@@ -5,6 +5,8 @@ from pathlib import Path
 import solara
 from solara.alias import rv
 from sepal_ui.sepalwidgets.file_input import FileInputComponent
+from sepal_ui.mapping import get_ipygeojson
+import geopandas as gpd
 from component.scripts.geospatial import (
     is_raster_file,
     is_vector_file,
@@ -55,9 +57,11 @@ def VectorMapWatcher(zsmap: ZsMap):
         zone_path = app_state.zone_file_path.value
 
         if zone_path and not app_state.zone_added_to_map.value:
+            gdf =gpd.read_file(zone_path)
+            geojson = get_ipygeojson(gdf,name="zones")
             try:
                 zsmap.add_layer(
-                    zone_path,
+                    geojson,
                     key="zones"
                 )
                 app_state.zone_added_to_map.value = True
@@ -397,7 +401,7 @@ def FileUploadInstructions():
     """Instructions for file upload formats."""
     solara.Markdown("Upload your input raster")
 
-@solara.component # type : ignore
+@solara.component # type: ignore
 def ZoneUploadInstructions():
     """Instructions for zonal file upload formats."""
     solara.Markdown("Upload your zone boundaries as a vector file:")
