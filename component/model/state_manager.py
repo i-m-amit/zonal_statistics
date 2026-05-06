@@ -45,7 +45,7 @@ class AppState:
         self.target_crs: solara.Reactive[Optional[str]] = solara.reactive(None)
         #self.use_epsg = solara.reactive(True)
         self.proj_method: solara.Reactive[str] = solara.reactive("EPSG")
-        self.distortion: solara.Reactive[str] = solara.reactive("equal-area")
+        self.distortion: solara.Reactive[str] = solara.reactive("Equal-area")
 
         # -----------------------------
         # Statistics configuration
@@ -118,7 +118,7 @@ class AppState:
         self.target_crs.value = None
         #self.use_epsg.value = True
         self.proj_method.value = "EPSG"
-        self.distortion.value = "equal-area"
+        self.distortion.value = "Equal-area"
 
 
         # Stats config
