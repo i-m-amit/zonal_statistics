@@ -18,10 +18,10 @@ def run_zonal_statistics(
     vector_path: Optional[str],
     target_crs: Optional[str],
     statistics: List[str],
-    column_prefix: str = "value",
+    column_prefix: str = "",
     operation_args=None,
     quantile_args=None 
-) -> gpd.GeoDataFrame:
+) -> gpd.GeoDataFrame|None:
     """
     Run zonal statistics using exactextract
 
@@ -71,6 +71,8 @@ def run_zonal_statistics(
     #Column names to keep
     if not gdf.empty:
         column_names = list(gdf.drop(columns='geometry').columns)
+    else:
+        column_names =[]
     # Build stat strings with arguments
     stat_strings = []
     
@@ -108,26 +110,31 @@ def run_zonal_statistics(
             include_cols=column_names,  # Include original columns
             output='pandas'
         )
+        if isinstance(results,pd.DataFrame):
+            logger.info(f"exactextract completed, {len(results)} zones processed")
 
-        logger.info(f"exactextract completed, {len(results)} zones processed")
+            # Create output GeoDataFrame
+            # Merge results with original geometries
+            result_gdf = gdf.copy()
 
-        # Create output GeoDataFrame
-        # Merge results with original geometries
-        result_gdf = gdf.copy()
+            # Add statistics columns
+            for stat in statistics:
+                if stat in results.columns:
+                    if len(column_prefix)>0:
+                        result_gdf[f"{column_prefix}_{stat}"] = results[stat].values
+                    else:
+                        result_gdf[f"{stat}"] = results[stat].values
 
-        # Add statistics columns
-        for stat in statistics:
-            if stat in results.columns:
-                result_gdf[f"{column_prefix}_{stat}"] = results[stat].values
+            # Add zone IDs if not present
+            if 'zone_id' not in result_gdf.columns:
+                result_gdf['zone_id'] = range(len(result_gdf))
 
-        # Add zone IDs if not present
-        if 'zone_id' not in result_gdf.columns:
-            result_gdf['zone_id'] = range(len(result_gdf))
+            logger.info(f"Results shape: {result_gdf.shape}")
+            logger.info(f"Columns: {result_gdf.columns.tolist()}")
 
-        logger.info(f"Results shape: {result_gdf.shape}")
-        logger.info(f"Columns: {result_gdf.columns.tolist()}")
-
-        return result_gdf
+            return result_gdf
+        else:
+            return None
 
     except Exception as e:
         logger.error(f"Error in exact_extract: {e}", exc_info=True)

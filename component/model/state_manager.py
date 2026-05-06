@@ -50,10 +50,10 @@ class AppState:
         # -----------------------------
         # Statistics configuration
         # -----------------------------
-        self.selected_stats = solara.reactive([
-            "mean", "sum", "count", "min", "max"
+        self.selected_stats:solara.Reactive[List] = solara.reactive([
+            "unique", "frac",
         ])
-        self.stat_column = solara.reactive("value")
+        self.stat_column:solara.Reactive[str] = solara.reactive("")
 
         # -----------------------------
         # UI
@@ -75,7 +75,7 @@ class AppState:
         # -----------------------------
         # Zonal statsResults
         # -----------------------------
-        self.zonal_results = solara.reactive(None)
+        self.zonal_results:solara.Reactive[pd.DataFrame|None] = solara.reactive(None)
         self.results_gdf:solara.Reactive[gpd.GeoDataFrame| None] = solara.reactive(None)
         self.selected_map_column = solara.reactive(None)
         # -----------------------------
@@ -122,8 +122,8 @@ class AppState:
 
 
         # Stats config
-        self.selected_stats.value = ["mean", "sum", "count", "min", "max"]
-        self.stat_column.value = "value"
+        self.selected_stats.value = ["unique", "frac"]
+        self.stat_column.value = ""
 
         # Results
         self.zonal_results.value = None
