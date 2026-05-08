@@ -77,6 +77,7 @@ class AppState:
         # -----------------------------
         self.zonal_results:solara.Reactive[pd.DataFrame|None] = solara.reactive(None)
         self.results_gdf:solara.Reactive[gpd.GeoDataFrame| None] = solara.reactive(None)
+        self.results_gdf_modified:solara.Reactive[gpd.GeoDataFrame|None] = solara.reactive(None)
         self.selected_map_column = solara.reactive(None)
         # -----------------------------
         # Exact Extract Processing state
@@ -128,6 +129,7 @@ class AppState:
         # Results
         self.zonal_results.value = None
         self.results_gdf.value = None
+        self.results_gdf_modified.value = None
         self.selected_map_column.value = None
         # Processing
         self.is_ee_processing.value = False

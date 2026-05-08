@@ -22,6 +22,7 @@ from component.tile.upload import RasterMapWatcher
 from component.tile.upload import UploadTile
 from component.tile.projection import ProjectionSelector
 from component.tile.stat_selection import StatsSelectionTile
+from component.tile.dataframe_formatter import ZonalDataFrameFormatterTile
 from component.tile.results import ResultsTile
 from component.widget.map import ZsMap
 
@@ -98,10 +99,10 @@ def Page():
         },
         {
             "id": 4,
-            "name": "4. Exract Statistics",
+            "name": "4. Format Results",
             "icon": "mdi-calculator",
             "display": "dialog",
-            "content": None,
+            "content": ZonalDataFrameFormatterTile(),
             "width": 800,
             "actions": [
                 {
