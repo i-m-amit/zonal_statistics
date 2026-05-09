@@ -36,6 +36,15 @@ def export_shapefile(gdf: gpd.GeoDataFrame) -> Path:
     gdf.to_file(shp_path)
     return shp_path
 
+
+def download_file(file_path: Path) -> None:
+    """Trigger file download"""
+    logger.info(f"Exporting file: {file_path}")
+    # Note: In a real deployment, you'd implement actual file download
+    # For Solara, you might use solara.download or serve files via HTTP
+    solara.Info(f"File exported to: {file_path}")
+
+
 @solara.component  # type: ignore
 def ResultsTile(map_widget: ZsMap):
     """Panel for displaying and exporting results"""
@@ -83,8 +92,8 @@ def ResultsTile(map_widget: ZsMap):
                     def update_map():
                         try:
                             if selected_column.value in stat_columns:
-                                #TODO: need to convert thr gdf to GeoJoson
-                                map_widget.add_layer(gdf, selected_column.value) #type: ignore 
+                                # TODO: need to convert thr gdf to GeoJoson
+                                map_widget.add_layer(gdf, selected_column.value)  # type: ignore
                         except Exception as e:
                             logger.error(f"Error updating map: {e}")
 
@@ -93,7 +102,7 @@ def ResultsTile(map_widget: ZsMap):
                     )
 
             # Data table display
-        if df is not None:            
+        if df is not None:
             with solara.Card("Results Table", elevation=2):
                 solara.Markdown("**Preview of results** (showing first 100 rows)")
 
@@ -116,44 +125,33 @@ def ResultsTile(map_widget: ZsMap):
             with solara.Card("Export Results", elevation=2):
                 solara.Markdown("**Download results in various formats:**")
 
-            with solara.Row():
-                if df is not None:
+                with solara.Row():
+                    if df is not None:
+                        solara.Button(
+                            label="📄 Export CSV",
+                            on_click=lambda: download_file(export_csv(df)),
+                            color="primary",
+                            outlined=True,
+                        )
 
-                    solara.Button(
-                        label="📄 Export CSV",
-                        on_click=lambda: download_file(export_csv(df)),
-                        color="primary",
-                        outlined=True,
-                    )
+                    # GeoJSON export (if geometry exists)
+                    if gdf is not None and "geometry" in gdf.columns:
+                        solara.Button(
+                            label="🗺️ Export GeoJSON",
+                            on_click=lambda: download_file(export_geojson(gdf)),
+                            color="success",
+                            outlined=True,
+                        )
 
-                # GeoJSON export (if geometry exists)
-                if gdf is not None and "geometry" in gdf.columns:
+                        # Shapefile export
 
-                    solara.Button(
-                        label="🗺️ Export GeoJSON",
-                        on_click=lambda: download_file(export_geojson(gdf)),
-                        color="success",
-                        outlined=True,
-                    )
+                        solara.Button(
+                            label="📦 Export Shapefile",
+                            on_click=lambda: download_file(export_shapefile(gdf)),
+                            color="info",
+                            outlined=True,
+                        )
 
-                    # Shapefile export
-
-                    solara.Button(
-                        label="📦 Export Shapefile",
-                        on_click=lambda: download_file(export_shapefile(gdf)),
-                        color="info",
-                        outlined=True,
-                    )
-
-            solara.Markdown("""
-            *Files will be saved to your downloads folder*
-            """)
-
-
-def download_file(file_path: Path)-> None:
-    """Trigger file download"""
-    logger.info(f"Exporting file: {file_path}")
-    # Note: In a real deployment, you'd implement actual file download
-    # For Solara, you might use solara.download or serve files via HTTP
-    solara.Info(f"File exported to: {file_path}")
-
+                solara.Markdown("""
+                *Files will be saved to your downloads folder*
+                """)
