@@ -10,7 +10,9 @@ import solara.lab
 from component.model.state_manager import app_state
 
 import logging
-logger=logging.getLogger("zs.gdf_formatter")
+
+logger = logging.getLogger("zs.gdf_formatter")
+
 
 def _parse_list_string(raw) -> Optional[list]:
     """Improved parser for various exactextract list formats"""
@@ -18,7 +20,7 @@ def _parse_list_string(raw) -> Optional[list]:
         return list(raw)
     if isinstance(raw, np.ndarray):
         return raw.tolist()
-    
+
     if pd.isna(raw) or not isinstance(raw, str):
         return None
 
@@ -33,7 +35,7 @@ def _parse_list_string(raw) -> Optional[list]:
             return []
 
         try:
-            cleaned = re.sub(r'\s+', ' ', inner).strip()
+            cleaned = re.sub(r"\s+", " ", inner).strip()
             tokens = cleaned.split()
             result = []
             for t in tokens:
@@ -48,6 +50,7 @@ def _parse_list_string(raw) -> Optional[list]:
 
     return None
 
+
 def _list_lengths(series: pd.Series) -> pd.Series:
     """Per-cell list length (0 if unparsable)."""
     return series.map(lambda v: len(_parse_list_string(v) or []))
@@ -59,14 +62,14 @@ def _detect_list_columns(df: gpd.GeoDataFrame, min_fraction: float = 0.7) -> Lis
     for col in df.columns:
         if col == df.geometry.name:  # skip geometry
             continue
-            
+
         sample = df[col].dropna().head(30)  # increased sample size
         if len(sample) == 0:
             continue
 
         # Convert to string for detection
         sample_str = sample.astype(str).str.strip()
-        
+
         hits = 0
         for val in sample_str:
             parsed = _parse_list_string(val)
@@ -77,7 +80,7 @@ def _detect_list_columns(df: gpd.GeoDataFrame, min_fraction: float = 0.7) -> Lis
                 hits += 1
 
         hit_rate = hits / len(sample)
-        
+
         if hit_rate >= min_fraction:
             result.append(col)
             logger.info(f"Detected list column: '{col}' (hit rate: {hit_rate:.2f}")
@@ -85,9 +88,11 @@ def _detect_list_columns(df: gpd.GeoDataFrame, min_fraction: float = 0.7) -> Lis
             logger.debug(f"Skipped column '{col}' (hit rate: {hit_rate:.2f})")
 
     return result
+
+
 def _explode(gdf: gpd.GeoDataFrame, explode_cols: List[str]) -> gpd.GeoDataFrame:
     """Explode with robust parsing and logging."""
-    
+
     logger.info(f"Explode started - columns: {explode_cols}")
 
     if gdf is None or len(gdf) == 0:
@@ -100,9 +105,11 @@ def _explode(gdf: gpd.GeoDataFrame, explode_cols: List[str]) -> gpd.GeoDataFrame
         # Parse lists safely
         for col in explode_cols:
             work[col] = work[col].map(
-                lambda v: _parse_list_string(v) 
-                          if isinstance(v, (str, np.ndarray)) 
-                          else (v if isinstance(v, (list, tuple)) else [])
+                lambda v: (
+                    _parse_list_string(v)
+                    if isinstance(v, (str, np.ndarray))
+                    else (v if isinstance(v, (list, tuple)) else [])
+                )
             )
 
         logger.info("Parsing completed. Sample after parsing:")
@@ -110,7 +117,9 @@ def _explode(gdf: gpd.GeoDataFrame, explode_cols: List[str]) -> gpd.GeoDataFrame
         # Log sample for debugging
         for col in explode_cols:
             sample = work[col].iloc[0] if len(work) > 0 else None
-            logger.info(f"  {col}: {sample} (type: {type(sample)}, len: {len(sample) if isinstance(sample, (list,tuple)) else 'N/A'})")
+            logger.info(
+                f"  {col}: {sample} (type: {type(sample)}, len: {len(sample) if isinstance(sample, (list, tuple)) else 'N/A'})"
+            )
 
         # Convert to pandas and explode
         exploded_pd = pd.DataFrame(work).explode(explode_cols, ignore_index=True)
@@ -120,9 +129,7 @@ def _explode(gdf: gpd.GeoDataFrame, explode_cols: List[str]) -> gpd.GeoDataFrame
         # Rebuild GeoDataFrame
         if gdf.geometry.name in exploded_pd.columns:
             result = gpd.GeoDataFrame(
-                exploded_pd, 
-                geometry=gdf.geometry.name, 
-                crs=gdf.crs
+                exploded_pd, geometry=gdf.geometry.name, crs=gdf.crs
             )
         else:
             result = gpd.GeoDataFrame(exploded_pd)
@@ -142,9 +149,9 @@ def _widen(
     fill_missing: float = np.nan,
 ) -> gpd.GeoDataFrame:
     """Convert list columns to wide format with proper logging."""
-    
+
     logger.info(f"Widen started - unique_col: '{unique_col}', value_cols: {value_cols}")
-    
+
     if gdf is None or len(gdf) == 0:
         logger.error("Input GeoDataFrame is empty or None")
         raise ValueError("Input GeoDataFrame is empty")
@@ -155,11 +162,13 @@ def _widen(
         for col in [unique_col] + value_cols:
             series_parsed = gdf[col].map(_parse_list_string)
             parsed[col] = series_parsed
-            
+
             valid = series_parsed.dropna()
             if len(valid) > 0:
                 sample = valid.iloc[0]
-                logger.info(f"Parsed sample for '{col}': {sample} | length={len(sample) if sample else 0}")
+                logger.info(
+                    f"Parsed sample for '{col}': {sample} | length={len(sample) if sample else 0}"
+                )
 
         # === BUILD WIDE TABLE ===
         unique_values: set = set()
@@ -170,7 +179,9 @@ def _widen(
         unique_sorted = sorted(unique_values)
         logger.info(f"Found {len(unique_sorted)} unique values: {unique_sorted[:15]}")
 
-        stat_names = [col.rsplit("_", 1)[-1] if "_" in col else col for col in value_cols]
+        stat_names = [
+            col.rsplit("_", 1)[-1] if "_" in col else col for col in value_cols
+        ]
 
         exclude = {unique_col} | set(value_cols)
         base_cols = [c for c in gdf.columns if c not in exclude]
@@ -185,17 +196,25 @@ def _widen(
                     col_name = f"{u}_{stat}"
                     val_list = parsed[val_col].iloc[i] or []
 
-                    if isinstance(uniq_list, list) and isinstance(val_list, list) and u in uniq_list:
+                    if (
+                        isinstance(uniq_list, list)
+                        and isinstance(val_list, list)
+                        and u in uniq_list
+                    ):
                         pos = uniq_list.index(u)
-                        new_row[col_name] = val_list[pos] if pos < len(val_list) else fill_missing
+                        new_row[col_name] = (
+                            val_list[pos] if pos < len(val_list) else fill_missing
+                        )
                     else:
                         new_row[col_name] = fill_missing
 
             new_rows.append(new_row)
 
         wide_df = pd.DataFrame(new_rows)
-        logger.info(f"Created wide DataFrame with shape {wide_df.shape} "
-                   f"({len(wide_df.columns) - len(base_cols)} new columns added)")
+        logger.info(
+            f"Created wide DataFrame with shape {wide_df.shape} "
+            f"({len(wide_df.columns) - len(base_cols)} new columns added)"
+        )
 
         # Rebuild GeoDataFrame
         if gdf.geometry.name in wide_df.columns:
@@ -203,12 +222,15 @@ def _widen(
         else:
             result = gpd.GeoDataFrame(wide_df)
 
-        logger.info(f"Widen completed successfully. Final columns: {len(result.columns)}")
+        logger.info(
+            f"Widen completed successfully. Final columns: {len(result.columns)}"
+        )
         return result
 
     except Exception as e:
         logger.exception(f"Error during widening operation: {e}")
         raise
+
 
 @solara.component  # type: ignore
 def _ColumnBadge(col: str, is_list_col: bool):
@@ -235,21 +257,6 @@ def _InfoChip(text: str, bg: str = "#e8f4f8", fg: str = "#0d6efd"):
     )
 
 
-@solara.component  # type: ignore
-def _MethodTab(label: str, active: bool, on_click):
-    bg = "#0d6efd" if active else "#e9ecef"
-    fg = "#fff" if active else "#495057"
-    bdr = "2px solid #0d6efd" if active else "2px solid transparent"
-    solara.Button(
-        label,
-        on_click=on_click,
-        style=(
-            f"background:{bg}; color:{fg}; border:{bdr}; border-radius:8px; "
-            "padding:6px 22px; font-weight:600; font-size:0.9rem; cursor:pointer;"
-        ),
-    )
-
-
 # -------Method panels-----------------------------------
 
 
@@ -257,7 +264,7 @@ def _MethodTab(label: str, active: bool, on_click):
 def _ExplodePanel(working_gdf: gpd.GeoDataFrame, list_cols: List[str]):
     """UI for the Explode (long-format) method."""
 
-    selected_cols = solara.use_reactive(cast(List[str],[])) 
+    selected_cols = solara.use_reactive(cast(List[str], []))
     result_gdf: solara.Reactive[Optional[gpd.GeoDataFrame]] = solara.use_reactive(None)
     error_msg = solara.use_reactive("")
 
@@ -286,8 +293,10 @@ def _ExplodePanel(working_gdf: gpd.GeoDataFrame, list_cols: List[str]):
             result_gdf.value = result
             app_state.results_gdf_modified.value = result
             expansion = len(result) / len(working_gdf) if len(working_gdf) > 0 else 1
-            solara.Success(f"✅ Exploded successfully! {len(working_gdf)} → {len(result)} rows ({expansion:.1f}×)", 
-                timeout=5)
+            solara.Success(
+                f"✅ Exploded successfully! {len(working_gdf)} → {len(result)} rows ({expansion:.1f}×)",
+                timeout=5,
+            )
         except Exception as e:
             error_msg.value = f"Explode failed: {e}"
             logger.error(f"Explode error: {e}")
@@ -558,20 +567,19 @@ def ZonalDataFrameFormatterTile():
     # Reactive variables
     working_gdf = app_state.results_gdf
     list_cols = solara.use_reactive(cast(List[str], []))
-    method = solara.use_reactive("explode")  # "explode" | "widen"
+    method = solara.use_reactive("skip")  # "explode" | "widen"
     show_raw = solara.use_reactive(False)
     load_error = solara.use_reactive("")
-
-  
 
     def _update_list_cols():
         if working_gdf.value is not None:
             detected = _detect_list_columns(working_gdf.value)
-            if detected != list_cols.value:        # avoid unnecessary updates
+            if detected != list_cols.value:  # avoid unnecessary updates
                 list_cols.value = detected
         else:
             list_cols.value = []
-    solara.use_effect(_update_list_cols, [working_gdf]) #type: ignore
+
+    solara.use_effect(_update_list_cols, [working_gdf])  # type: ignore
     _update_list_cols()
 
     # -------------------- card shell --------------------
@@ -595,25 +603,29 @@ def ZonalDataFrameFormatterTile():
             solara.DataFrame(pd.DataFrame(working_gdf.value.head(5)))
 
         # Method switcher
-
-        with solara.Row(style="gap:10px; margin-bottom:16px;"):
-            _MethodTab(
-                "Explode  (long format)",
-                active=(method.value == "explode"),
-                on_click=lambda: setattr(method, "value", "explode"),
+        with solara.ToggleButtonsSingle(value=method):
+            solara.Button("Skip (Keep original)", icon_name="mdi-table",value="skip", text=True,)
+            solara.Button(
+                "WIDEN (wide format)",
+                icon_name="mdi-table-column-plus-after",
+                value="widen",
+                text=True,
             )
-            _MethodTab(
-                "Widen  (wide format)",
-                active=(method.value == "widen"),
-                on_click=lambda: setattr(method, "value", "widen"),
+            solara.Button(
+                "EXPLODE (long format)",
+                icon_name="mdi-table-row-plus-after",
+                value="explode",
+                text=True,
             )
 
         # Active panel
         if working_gdf.value is not None:
             if method.value == "explode":
                 _ExplodePanel(working_gdf=working_gdf.value, list_cols=list_cols.value)
-            else:
+            elif method.value == "widen":
                 _WidenPanel(working_gdf=working_gdf.value, list_cols=list_cols.value)
+            else:
+                pass
         else:
             solara.Warning("No data loaded yet.")
 
