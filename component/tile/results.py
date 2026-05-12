@@ -6,9 +6,10 @@ from pathlib import Path
 import geopandas as gpd
 import solara
 import pandas as pd
-
+from ipyleaflet import GeoJSON
 from component.model import app_state
 from component.widget.map import ZsMap
+from component.scripts.geospatial import gdf_to_geojson_layer
 
 logger = logging.getLogger("zs.results")
 
@@ -40,8 +41,7 @@ def export_shapefile(gdf: gpd.GeoDataFrame) -> Path:
 def download_file(file_path: Path) -> None:
     """Trigger file download"""
     logger.info(f"Exporting file: {file_path}")
-    # Note: In a real deployment, you'd implement actual file download
-    # For Solara, you might use solara.download or serve files via HTTP
+    # For Solara, use solara.download or serve files via HTTP to download direct to your local computer
     solara.Info(f"File exported to: {file_path}")
 
 
@@ -91,11 +91,33 @@ def ResultsTile(map_widget: ZsMap):
 
                     def update_map():
                         try:
-                            if selected_column.value in stat_columns:
-                                # TODO: need to convert thr gdf to GeoJoson
-                                map_widget.add_layer(gdf, selected_column.value)  # type: ignore
+                            if selected_column.value not in stat_columns:
+                                return
+
+                            logger.info(
+                                f"Updating map with column: {selected_column.value}"
+                            )
+
+                            # Remove previous zonal layer first
+                            for lyr in list(map_widget.layers):
+                                if (
+                                    isinstance(lyr, GeoJSON)
+                                    and getattr(lyr, "name", None) == "Zonal Results"
+                                ):
+                                    map_widget.remove_layer(lyr)
+
+                            # Create and add the new layer (do NOT add it again here)
+                            layer = gdf_to_geojson_layer(
+                                gdf=gdf,
+                                column=selected_column.value,
+                                layer_name="Zonal Results",
+                            )
+
+                            map_widget.add_layer(layer)
+
                         except Exception as e:
-                            logger.error(f"Error updating map: {e}")
+                            logger.error(f"Error updating map: {e}", exc_info=True)
+                            solara.Error(f"Failed to update map: {e}")
 
                     solara.Button(
                         label="Update Map", on_click=update_map, color="primary"

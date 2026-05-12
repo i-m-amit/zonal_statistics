@@ -1,12 +1,20 @@
+import json
 import os
 import tempfile
 from pathlib import Path
 from typing import Dict, Optional
 
 import geopandas as gpd
+import matplotlib.cm as cm
+import matplotlib.colors as colors
 import rasterio
+from ipyleaflet import GeoJSON
 from pyproj import Transformer
+
 from component.scripts.proj_util import Bounds
+import logging
+
+logger = logging.getLogger("zs.geospatial_utils")
 
 
 def is_raster_file(file_path: str) -> bool:
@@ -132,17 +140,70 @@ def get_file_info(file_path: str) -> Dict:
     return info
 
 
-def get_bounds_in_wgs84(file_info:Dict) -> Bounds:
+def get_bounds_in_wgs84(file_info: Dict) -> Bounds:
     """Takes a bound and crs and returns bounds in WGS84"""
-    crs_str = file_info.get('crs')
-    _bounds = file_info.get('bounds')
+    crs_str = file_info.get("crs")
+    _bounds = file_info.get("bounds")
     if crs_str and _bounds:
         if "4326" not in crs_str:
             transformer = Transformer.from_crs(crs_str, "EPSG:4326", always_xy=True)
             lon_min, lat_min = transformer.transform(_bounds[0], _bounds[1])
             lon_max, lat_max = transformer.transform(_bounds[2], _bounds[3])
         else:
-            lon_min, lat_min, lon_max, lat_max = _bounds[0], _bounds[1], _bounds[2], _bounds[3]
-        return Bounds(min_lon=lon_min, max_lon=lon_max, min_lat=lat_min, max_lat=lat_max)
+            lon_min, lat_min, lon_max, lat_max = (
+                _bounds[0],
+                _bounds[1],
+                _bounds[2],
+                _bounds[3],
+            )
+        return Bounds(
+            min_lon=lon_min, max_lon=lon_max, min_lat=lat_min, max_lat=lat_max
+        )
     else:
-        return Bounds(min_lon=-180, max_lon=180,min_lat=-90,max_lat=90)
+        return Bounds(min_lon=-180, max_lon=180, min_lat=-90, max_lat=90)
+
+
+def gdf_to_geojson_layer(
+    gdf: gpd.GeoDataFrame, column: str, layer_name: str = "Zonal Results"
+) -> GeoJSON:
+    """Convert GeoDataFrame to ipyleaflet GeoJSON layer with dynamic hover popup."""
+
+    if gdf.crs is not None and gdf.crs.to_epsg() != 4326:
+        gdf = gdf.to_crs(epsg=4326)
+
+    geojson_str = gdf[[column, "geometry"]].to_json()  # keep only selected columns
+    if not geojson_str:
+        raise ValueError("GeoDataFrame serialization returned None or empty string")
+
+    geojson_dict = json.loads(str(geojson_str))
+
+    values = gdf[column].dropna().to_numpy()
+    vmin, vmax = float(values.min()), float(values.max())
+    norm = colors.Normalize(vmin=vmin, vmax=vmax)
+    cmap = cm.get_cmap("inferno")
+
+    def style_callback(feature: dict) -> dict:
+        val = feature["properties"].get(column)
+        if val is None:
+            hex_color = "#21908c"
+
+            return {"color": "#666", "weight": 1, "fillOpacity": 0.6}
+
+        else:
+            hex_color = colors.to_hex(cmap(norm(float(val))))
+
+        return {
+            "color": "#333",
+            "weight": 1,
+            "fillColor": hex_color,
+            "fillOpacity": 0.75,
+        }
+
+    layer = GeoJSON(
+        data=geojson_dict,
+        name=layer_name,
+        style={"color": "#333", "weight": 1},
+        style_callback=style_callback,
+        hover_style={"weight": 2, "color": "yellow", "fillOpacity": 0.9},
+    )
+    return layer
