@@ -1,4 +1,5 @@
-"""Zonal statsitics and Area tabulation """
+"""Zonal statsitics and Area tabulation"""
+
 # ruff: noqa: E402
 # PROJ_DATA must be set before importing rasterio/pyproj to avoid CRS errors
 # when system PROJ_DATA points to an incompatible proj.db (e.g., in SEPAL)
@@ -11,14 +12,14 @@ from pyproj import datadir
 
 if os.path.exists(proj_data):
     datadir.set_data_dir(proj_data)
-    
+
 import solara
 from sepal_ui.logger import setup_logging
 from sepal_ui.sepalwidgets.vue_app import MapApp, ThemeToggle
-from sepal_ui.solara import (setup_sessions, setup_solara_server,setup_theme_colors, with_sepal_sessions)
+from sepal_ui.solara import setup_sessions, setup_solara_server, setup_theme_colors
 from solara.lab.components.theming import theme
 from component.model.app_model import AppModel
-from component.tile.upload import RasterMapWatcher
+from component.tile.upload import RasterMapWatcher, VectorMapWatcher
 from component.tile.upload import UploadTile
 from component.tile.projection import ProjectionSelector
 from component.tile.stat_selection import StatsSelectionTile
@@ -31,22 +32,26 @@ logger.debug("Zonal statistics app initialized")
 
 
 setup_solara_server()
-@solara.lab.on_kernel_start #type: ignore
+
+
+@solara.lab.on_kernel_start  # type: ignore
 def on_kernel_start():
     return setup_sessions()
 
-@solara.component #type: ignore
-#@with_sepal_sessions(module_name="area_tabulation")
+
+@solara.component  # type: ignore
+# @with_sepal_sessions(module_name="area_tabulation")
 def Page():
     """ZS app using MapApp layout"""
     app_model = AppModel()
-    current_dialog, set_current = solara.use_state(1) #type: ignore
+    current_dialog, set_current = solara.use_state(1)  # type: ignore
 
     setup_theme_colors()
     theme_toggle = ThemeToggle()
-    theme_toggle.observe(lambda e: setattr(theme, "dark", e["new"]),"dark")
+    theme_toggle.observe(lambda e: setattr(theme, "dark", e["new"]), "dark")
     zs_map = ZsMap(theme_toggle=theme_toggle)
     RasterMapWatcher(zs_map)
+    VectorMapWatcher(zs_map)
 
     steps_data = [
         {
@@ -86,7 +91,7 @@ def Page():
             "name": "3. Select Statistics",
             "icon": "mdi-chart-line",
             "display": "dialog",
-            "content":StatsSelectionTile(),
+            "content": StatsSelectionTile(),
             "width": 800,
             "actions": [
                 {
@@ -118,7 +123,7 @@ def Page():
             "name": "5. Export Results",
             "icon": "mdi-download",
             "display": "dialog",
-            "content":ResultsTile(zs_map),
+            "content": ResultsTile(zs_map),
             "width": 800,
             "actions": [
                 {
@@ -166,7 +171,7 @@ def Page():
     ]
 
     # Create the MapApp with the shared map instance
-    MapApp.element( #type: ignore
+    MapApp.element(  # type: ignore
         app_title="Zonal Statistics and Area tabulation",
         app_icon="mdi-map-marker-radius",
         main_map=[zs_map],

@@ -3,7 +3,7 @@ import os
 import tempfile
 from pathlib import Path
 from typing import Dict, Optional
-
+import pandas as pd
 import geopandas as gpd
 import matplotlib.cm as cm
 import matplotlib.colors as colors
@@ -164,46 +164,82 @@ def get_bounds_in_wgs84(file_info: Dict) -> Bounds:
 
 
 def gdf_to_geojson_layer(
-    gdf: gpd.GeoDataFrame, column: str, layer_name: str = "Zonal Results"
+    gdf: gpd.GeoDataFrame,
+    column: Optional[str] = None,
+    layer_name: str = "Vector",
+    cmap_name: str = "inferno",
+    fill_opacity: float = 0.75,
 ) -> GeoJSON:
-    """Convert GeoDataFrame to ipyleaflet GeoJSON layer with dynamic hover popup."""
+    """
+    Convert GeoDataFrame to ipyleaflet GeoJSON layer.
 
+    Parameters:
+        gdf: GeoDataFrame
+        column: Column to use for coloring and hover info.
+                If None → simple uniform styling (no coloring).
+        layer_name: Name of the layer to display
+        cmap_name: matplotlib cmap
+        fill_opacity: transperency
+    """
+
+    # Reproject if needed
     if gdf.crs is not None and gdf.crs.to_epsg() != 4326:
         gdf = gdf.to_crs(epsg=4326)
 
-    geojson_str = gdf[[column, "geometry"]].to_json()  # keep only selected columns
+    # Select columns for GeoJSON
+    if column and column in gdf.columns:
+        geojson_gdf = gdf[[column, "geometry"]]
+    else:
+        geojson_gdf = gdf[["geometry"]]
+    geojson_str = geojson_gdf.to_json()
     if not geojson_str:
         raise ValueError("GeoDataFrame serialization returned None or empty string")
 
-    geojson_dict = json.loads(str(geojson_str))
-
-    values = gdf[column].dropna().to_numpy()
-    vmin, vmax = float(values.min()), float(values.max())
-    norm = colors.Normalize(vmin=vmin, vmax=vmax)
-    cmap = cm.get_cmap("inferno")
+    geojson_dict = json.loads(geojson_str)
 
     def style_callback(feature: dict) -> dict:
+        if not column:
+            return {
+                "color": "#333333",
+                "weight": 1.5,
+                "fillColor": "#1f78b4",
+                "fillOpacity": fill_opacity,
+            }
+
         val = feature["properties"].get(column)
-        if val is None:
+        if val is None or pd.isna(val):
+            return {
+                "color": "#666666",
+                "weight": 1,
+                "fillColor": "#cccccc",
+                "fillOpacity": 0.5,
+            }
+
+        try:
+            values = gdf[column].dropna().to_numpy()
+            vmin, vmax = float(values.min()), float(values.max())
+            norm = colors.Normalize(vmin=vmin, vmax=vmax)
+            cmap = cm.get_cmap(cmap_name)
+            hex_color = colors.to_hex(cmap(norm(float(val))))
+        except Exception:
             hex_color = "#21908c"
 
-            return {"color": "#666", "weight": 1, "fillOpacity": 0.6}
-
-        else:
-            hex_color = colors.to_hex(cmap(norm(float(val))))
-
         return {
-            "color": "#333",
+            "color": "#333333",
             "weight": 1,
             "fillColor": hex_color,
-            "fillOpacity": 0.75,
+            "fillOpacity": fill_opacity,
         }
 
     layer = GeoJSON(
         data=geojson_dict,
         name=layer_name,
-        style={"color": "#333", "weight": 1},
+        style={"color": "#333", "weight": 1.2},
         style_callback=style_callback,
-        hover_style={"weight": 2, "color": "yellow", "fillOpacity": 0.9},
+        hover_style={"weight": 3, "color": "yellow", "fillOpacity": 0.9},
+    )
+
+    logger.info(
+        f"Created GeoJSON layer '{layer_name}' {'with' if column else 'without'} column coloring"
     )
     return layer

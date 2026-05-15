@@ -1,29 +1,26 @@
 import logging
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, Optional
 from pathlib import Path
-#import ipyleaflet as ipl
+
+# import ipyleaflet as ipl
 import solara
 from solara.alias import rv
 from sepal_ui.sepalwidgets.file_input import FileInputComponent
-from sepal_ui.mapping import get_ipygeojson
+from component.scripts.geospatial import gdf_to_geojson_layer
 import geopandas as gpd
 from component.scripts.geospatial import (
     is_raster_file,
-    is_vector_file,
     get_file_info,
-    #save_uploaded_file,
+    # save_uploaded_file,
 )
 from component.scripts.tiling import prepare_for_tiles
 from component.model import app_state
 from component.widget.map import ZsMap
 
-logger = logging.getLogger('zs.upload')
+logger = logging.getLogger("zs.upload")
 
 
-
-
-
-@solara.component # type: ignore
+@solara.component  # type: ignore
 def RasterMapWatcher(zsmap: ZsMap):
     """Watches for optimized raster and adds it to map. Must stay mounted."""
 
@@ -31,16 +28,11 @@ def RasterMapWatcher(zsmap: ZsMap):
         optimized_path = app_state.optimized_raster_path.value
         status = app_state.raster_optimization_status.value
 
-        if (
-            optimized_path
-            and status == "adding_to_map"
-        ):
-            zsmap.add_raster(
-                optimized_path, layer_name="Layer", key="clas"
-            )
+        if optimized_path and status == "adding_to_map":
+            zsmap.add_raster(optimized_path, layer_name="Layer", key="clas")
             app_state.raster_optimization_status.value = "finished"
 
-    solara.use_effect(# type: ignore
+    solara.use_effect(  # type: ignore
         add_optimized_raster_to_map,
         [
             app_state.optimized_raster_path.value,
@@ -49,7 +41,7 @@ def RasterMapWatcher(zsmap: ZsMap):
     )
 
 
-@solara.component # type: ignore
+@solara.component  # type: ignore
 def VectorMapWatcher(zsmap: ZsMap):
     """Watches for zone vector and adds it to map. Must stay mounted."""
 
@@ -57,14 +49,12 @@ def VectorMapWatcher(zsmap: ZsMap):
         zone_path = app_state.zone_file_path.value
 
         if zone_path and not app_state.zone_added_to_map.value:
-            gdf =gpd.read_file(zone_path)
-            geojson = get_ipygeojson(gdf,name="zones")
+            gdf = gpd.read_file(zone_path)
+            geojson = gdf_to_geojson_layer(gdf, layer_name="Zones")
             try:
-                zsmap.add_layer(
-                    geojson,
-                    key="zones"
-                )
+                zsmap.add_layer(geojson)
                 app_state.zone_added_to_map.value = True
+                logger.info("Zone layer added to the map")
             except Exception as e:
                 logger.error(f"Error adding zone layer: {e}")
                 app_state.zone_file_error.value = str(e)
@@ -75,7 +65,7 @@ def VectorMapWatcher(zsmap: ZsMap):
     )
 
 
-@solara.component # type: ignore
+@solara.component  # type: ignore
 def CurrentFileDisplay(zsmap: ZsMap):
     """Display the currently selected file with option to clear it."""
 
@@ -109,7 +99,6 @@ def CurrentFileDisplay(zsmap: ZsMap):
     is_loading = optimization_status in ("running", "adding_to_map")
 
     with solara.Card(classes=["mb-4"]):
-
         with solara.Row(justify="space-between", style={"align-items": "center"}):
             with solara.Column(gap="0px"):
                 solara.HTML(
@@ -134,13 +123,13 @@ def CurrentFileDisplay(zsmap: ZsMap):
                 icon=True,
             )
         (
-            solara.v.ProgressLinear(indeterminate=is_loading, classes=["my-2"]) # type: ignore
+            solara.v.ProgressLinear(indeterminate=is_loading, classes=["my-2"])  # type: ignore
             if is_loading
             else None
         )
 
 
-@solara.component # type: ignore
+@solara.component  # type: ignore
 def UploadTile(zsmap: ZsMap):
     """Step 1: File Upload Dialog."""
     is_loading = solara.use_reactive(False)
@@ -216,7 +205,9 @@ def UploadTile(zsmap: ZsMap):
                         )
                         solara.ProgressLinear(value=True)
                     elif raster_prep_result.state == solara.ResultState.ERROR:
-                        solara.Error(f"Error optimizing raster: {raster_prep_result.error}")
+                        solara.Error(
+                            f"Error optimizing raster: {raster_prep_result.error}"
+                        )
                     elif raster_prep_result.state == solara.ResultState.FINISHED:
                         solara.Success(
                             "✅ Input layer uploaded and optimized successfully!"
@@ -242,13 +233,15 @@ def UploadTile(zsmap: ZsMap):
                 )
 
 
-@solara.component # type: ignore
+@solara.component  # type: ignore
 def RasterUploadSection(is_loading: solara.Reactive[bool]):
     """Simplified File Upload Section - No area computation"""
 
     # Local preview state (stores file path too)
     selected_file_path: solara.Reactive[Optional[str]] = solara.use_reactive(None)
-    selected_file_info_preview: solara.Reactive[Optional[Dict]] = solara.use_reactive(None)
+    selected_file_info_preview: solara.Reactive[Optional[Dict]] = solara.use_reactive(
+        None
+    )
     is_valid_file = solara.use_reactive(False)
 
     def reset_all_state():
@@ -288,8 +281,6 @@ def RasterUploadSection(is_loading: solara.Reactive[bool]):
             selected_file_path.value = None
             selected_file_info_preview.value = None
 
-
-
     def confirm_file_upload():
         """When user clicks 'Use This File'"""
         if not selected_file_info_preview.value or not selected_file_path.value:
@@ -311,7 +302,6 @@ def RasterUploadSection(is_loading: solara.Reactive[bool]):
 
     FileUploadInstructions()
     FileInputComponent(on_value=handle_file_selection)
-
 
     if app_state.file_error.value:
         ErrorAlert(app_state.file_error.value)
@@ -336,7 +326,9 @@ def RasterUploadSection(is_loading: solara.Reactive[bool]):
 def ZoneUploadSection():
     """File upload component for vector zone layer."""
     selected_file_path: solara.Reactive[Optional[str]] = solara.use_reactive(None)
-    selected_file_info_preview: solara.Reactive[Optional[Dict]] = solara.use_reactive(None)
+    selected_file_info_preview: solara.Reactive[Optional[Dict]] = solara.use_reactive(
+        None
+    )
     is_valid_file: solara.Reactive[bool] = solara.use_reactive(False)
 
     def handle_file_selection(file_path):
@@ -361,7 +353,9 @@ def ZoneUploadSection():
 
             # Check if it's a vector file
             if file_info_dict.get("file_type") != "vector":
-                app_state.zone_file_error.value = "Please select a vector file (Shapefile, GeoJSON, or GeoPackage)"
+                app_state.zone_file_error.value = (
+                    "Please select a vector file (Shapefile, GeoJSON, or GeoPackage)"
+                )
                 selected_file_path.value = None
                 selected_file_info_preview.value = None
                 is_valid_file.value = False
@@ -380,42 +374,41 @@ def ZoneUploadSection():
             selected_file_info_preview.value = None
             is_valid_file.value = False
 
-
     ZoneUploadInstructions()
     FileInputComponent(on_value=handle_file_selection)
 
     if app_state.zone_file_error.value:
         ErrorAlert(app_state.zone_file_error.value)
-        
+
     if selected_file_info_preview.value:
         FilePreview(selected_file_info_preview.value)
 
 
-@solara.component # type: ignore
+@solara.component  # type: ignore
 def UploadInstructions():
     solara.Markdown("Upload the raster to calculate the statistics")
 
 
-@solara.component # type: ignore
+@solara.component  # type: ignore
 def FileUploadInstructions():
     """Instructions for file upload formats."""
     solara.Markdown("Upload your input raster")
 
-@solara.component # type: ignore
+
+@solara.component  # type: ignore
 def ZoneUploadInstructions():
     """Instructions for zonal file upload formats."""
     solara.Markdown("Upload your zone boundaries as a vector file:")
-    
 
 
-@solara.component # type: ignore
+@solara.component  # type: ignore
 def ErrorAlert(error_message: str):
     """Error alert component."""
     with rv.Alert(type="error", text=True):
         solara.Markdown(f"**Error:** {error_message}")
 
 
-@solara.component # type: ignore
+@solara.component  # type: ignore
 def SuccessAlert(file_info: Dict[str, Any]):
     """Success alert component showing file information."""
     with rv.Alert(type="success", text=True):
@@ -430,7 +423,7 @@ def SuccessAlert(file_info: Dict[str, Any]):
         )
 
 
-@solara.component # type: ignore
+@solara.component  # type: ignore
 def FilePreview(file_info: Dict[str, Any]):
     """Preview component showing file information before confirmation."""
     with rv.Alert(type="info", text=True):
