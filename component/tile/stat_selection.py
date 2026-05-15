@@ -36,7 +36,6 @@ AVAILABLE_STATISTICS = [
     ("stdev", "Standard Deviation", "Standard deviation"),
     ("variance", "Variance", "Variance of values"),
     ("coefficient_of_variation", "Coefficient of Variation", "Std dev / mean"),
-    ("range", "Range", "Difference between max and min"),
     ("quantile", "Quantile", "Value at specified percentile (q)"),
     (
         "coverage",
