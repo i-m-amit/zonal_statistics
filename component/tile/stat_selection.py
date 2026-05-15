@@ -18,7 +18,11 @@ AVAILABLE_STATISTICS = [
         "Unique values",
         "Array of unique raster values for cells that intersect the polygon",
     ),
-    ("values","Values","Array of raster values for each cell that intersects the polygon"),
+    (
+        "values",
+        "Values",
+        "Array of raster values for each cell that intersects the polygon",
+    ),
     ("mean", "Mean", "Average value within each zone"),
     ("sum", "Sum", "Total sum of all values"),
     ("count", "Count", "Number of pixels/cells"),
@@ -54,15 +58,35 @@ AVAILABLE_STATISTICS = [
         "y coordinates of cells' centers",
         "Array with cell center y-coordinate for each cell that intersects the polygon. Each cell center may or may not be inside the polygon.",
     ),
-    ("max_center_x","x corrdinate of maximum cell's center","Cell center x-coordinate for the cell containing the maximum value intersected by the polygon. The center of this cell may or may not be inside the polygon."),
-    ("max_center_y","y coordinate of maximum cell's center","Cell center y-coordinate for the cell containing the maximum value intersected by the polygon. The center of this cell may or may not be inside the polygon."),
-    ("min_center_x","x coordinate of minimum cell's center","Cell center x-coordinate for the cell containing the minimum value intersected by the polygon. The center of this cell may or may not be inside the polygon."),
-    ("min_center_y","y coordinate of minimum cell's center","Cell center y-coordinate for the cell containing the minimum value intersected by the polygon. The center of this cell may or may not be inside the polygon."),
+    (
+        "max_center_x",
+        "x corrdinate of maximum cell's center",
+        "Cell center x-coordinate for the cell containing the maximum value intersected by the polygon. The center of this cell may or may not be inside the polygon.",
+    ),
+    (
+        "max_center_y",
+        "y coordinate of maximum cell's center",
+        "Cell center y-coordinate for the cell containing the maximum value intersected by the polygon. The center of this cell may or may not be inside the polygon.",
+    ),
+    (
+        "min_center_x",
+        "x coordinate of minimum cell's center",
+        "Cell center x-coordinate for the cell containing the minimum value intersected by the polygon. The center of this cell may or may not be inside the polygon.",
+    ),
+    (
+        "min_center_y",
+        "y coordinate of minimum cell's center",
+        "Cell center y-coordinate for the cell containing the minimum value intersected by the polygon. The center of this cell may or may not be inside the polygon.",
+    ),
     ("weighted_mean", "Weighted Mean", "Mean weighted by coverage"),
     ("weighted_sum", "Weighted Sum", "Sum weighted by coverage"),
     ("weighted_stdev", "Weighted Std Dev", "Weighted standard deviation"),
     ("weighted_variance", "Weighted Variance", "Weighted variance"),
-    ("weights","Weights","Array of weight values for each cell that intersects the polygon"),
+    (
+        "weights",
+        "Weights",
+        "Array of weight values for each cell that intersects the polygon",
+    ),
 ]
 
 COVERAGE_WEIGHT_OPTIONS = [
@@ -81,7 +105,6 @@ def StatsSelectionTile():
     # Local state
     is_processing = solara.use_reactive(False)
     quantile_value = solara.use_reactive(0.5)
-    show_quantile_config = solara.use_reactive(False)
 
     # Operation arguments state
     coverage_weight = solara.use_reactive("fraction")
@@ -90,90 +113,81 @@ def StatsSelectionTile():
     min_coverage_frac = solara.use_reactive(0.0)
     show_operation_args = solara.use_reactive(False)
 
-    with solara.Card(elevation=1, margin=0):
-        with solara.Row(justify="space-around", style={"align-items": "center"}):
-            # 1. Raster Status
-            if app_state.file_path.value:
-                solara.Success("Raster", text=True, style={"padding": "0px"})
-            else:
-                solara.Error("No raster", text=True, style={"padding": "0px"})
-
-            # 2. CRS Status
-            if app_state.target_crs.value:
-                solara.Success(f"CRS: {app_state.target_crs.value}", text=True)
-            else:
-                solara.Warning("Raster CRS", text=True)
-
-            # 3. Vector Status
-            if app_state.zone_file_path.value and app_state.zone_file_info.value:
-                count = app_state.zone_file_info.value.get("feature_count", 0)
-                solara.Info(f"{count} Zones", text=True)
-            else:
-                solara.Info("Full Extent", text=True)
-
-        # Statistics selection
-        with solara.Card("Select Statistics", elevation=2):
-            solara.Markdown("""
-            Choose which statistics to calculate for each zone.
-            Multiple statistics can be selected.
-            """)
-
-            # Multi-select for statistics
-            stat_options = [f"{name}" for _, name, _ in AVAILABLE_STATISTICS]
-            stat_keys = [key for key, _, _ in AVAILABLE_STATISTICS]
-            stat_description = [f"{desc}" for _, _, desc in AVAILABLE_STATISTICS]
-
-            # Map current selected stats to display format
-            current_selected = []
-            for stat in app_state.selected_stats.value:
-                # Find the matching stat in AVAILABLE_STATISTICS
-                for i, (key, _, _) in enumerate(AVAILABLE_STATISTICS):
-                    if key == stat:
-                        current_selected.append(stat_options[i])
-                        break
-
-            def on_stats_change(new_selection):
-                # Map back from display format to stat keys
-                selected_stats = []
-                for display_val in new_selection:
-                    for i, option in enumerate(stat_options):
-                        if option == display_val:
-                            selected_stats.append(stat_keys[i])
-                            break
-                app_state.selected_stats.value = selected_stats
-
-            solara.SelectMultiple(
-                label="Statistics to calculate",
-                all_values=stat_options,
-                values=current_selected,
-                on_value=on_stats_change,
-                dense=False,
+    with solara.Row():
+        # 1. Raster Status
+        if not app_state.file_path.value:
+            solara.Error(
+                "No input available, please select one first before proceeding to the next steps"
             )
 
-            # Quantile configuration (show when quantile is selected)
-            if "quantile" in app_state.selected_stats.value:
-                with solara.Column(
-                    style={
-                        "margin-top": "16px",
-                        "padding": "12px",
-                        "background-color": "#f5f5f5",
-                        "border-radius": "4px",
-                    }
-                ):
-                    solara.Markdown("**Quantile Configuration**")
+        # 3. Vector Status
+        if not app_state.zone_file_path.value:
+            solara.Warning(
+                "No Zone info available, full extent will be used to calculate statistics"
+            )
 
-                    solara.SliderFloat(
-                        label=f"Percentile (q = {quantile_value.value:.2f})",
-                        value=quantile_value.value,
-                        on_value=quantile_value.set,
-                        min=0.0,
-                        max=1.0,
-                        step=0.01,
-                    )
+    # Statistics selection
+    with solara.Card("Select Statistics", elevation=2):
+        solara.Markdown("""
+        Choose which statistics to calculate for each zone.
+        Multiple statistics can be selected.
+        """)
 
-                    solara.Markdown(
-                        f"*Will calculate the {quantile_value.value * 100:.0f}th percentile value*"
-                    )
+        # Multi-select for statistics
+        stat_options = [f"{name}" for _, name, _ in AVAILABLE_STATISTICS]
+        stat_keys = [key for key, _, _ in AVAILABLE_STATISTICS]
+
+        # Map current selected stats to display format
+        current_selected = []
+        for stat in app_state.selected_stats.value:
+            # Find the matching stat in AVAILABLE_STATISTICS
+            for i, (key, _, _) in enumerate(AVAILABLE_STATISTICS):
+                if key == stat:
+                    current_selected.append(stat_options[i])
+                    break
+
+        def on_stats_change(new_selection):
+            # Map back from display format to stat keys
+            selected_stats = []
+            for display_val in new_selection:
+                for i, option in enumerate(stat_options):
+                    if option == display_val:
+                        selected_stats.append(stat_keys[i])
+                        break
+            app_state.selected_stats.value = selected_stats
+
+        solara.SelectMultiple(
+            label="Statistics to calculate",
+            all_values=stat_options,
+            values=current_selected,
+            on_value=on_stats_change,
+            dense=False,
+        )
+
+        # Quantile configuration (show when quantile is selected)
+        if "quantile" in app_state.selected_stats.value:
+            with solara.Column(
+                style={
+                    "margin-top": "16px",
+                    "padding": "12px",
+                    "background-color": "#f5f5f5",
+                    "border-radius": "4px",
+                }
+            ):
+                solara.Markdown("**Quantile Configuration**")
+
+                solara.SliderFloat(
+                    label=f"Percentile (q = {quantile_value.value:.2f})",
+                    value=quantile_value.value,
+                    on_value=quantile_value.set,
+                    min=0.0,
+                    max=1.0,
+                    step=0.01,
+                )
+
+                solara.Markdown(
+                    f"*Will calculate the {quantile_value.value * 100:.0f}th percentile value*"
+                )
 
         # Operation Arguments Panel
         with solara.Card():
@@ -358,7 +372,7 @@ def StatsSelectionTile():
                 block=True,
             )
 
-            if not len(app_state.selected_stats.value)>0:
+            if not len(app_state.selected_stats.value) > 0:
                 solara.Warning("Please select at least one statistic to calculate")
 
         # Progress indicator
@@ -379,4 +393,3 @@ def StatsSelectionTile():
 
                 Go to the **Export Results** tab to view and download the full results.
                 """)
-

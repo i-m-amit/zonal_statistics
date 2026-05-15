@@ -45,14 +45,12 @@ def ProjectionSelector():
     wkt_input = solara.use_reactive("")
     validation_message = solara.use_reactive("")
 
-
     def update_proj_method(v):
         """updsate the proj method and Clear feedback whenever the user switches input methods"""
         app_state.proj_method.set(v)
         validation_message.value = ""
         epsg_input.value = ""
-        wkt_input.value  = ""
-
+        wkt_input.value = ""
 
     def apply_epsg():
         validation_message.value = ""
@@ -63,7 +61,7 @@ def ProjectionSelector():
             logger.info("Target CRS set via EPSG: %s", crs_string)
         else:
             validation_message.value = "✗ Invalid EPSG code"
- 
+
     def apply_wkt():
         validation_message.value = ""
         crs_string = validate_wkt(wkt_input.value)
@@ -73,14 +71,14 @@ def ProjectionSelector():
             logger.info("Target CRS set via WKT")
         else:
             validation_message.value = "✗ Invalid WKT string"
- 
+
     def use_raster_crs():
         if app_state.uploaded_file_info.value:
             crs = app_state.uploaded_file_info.value.get("crs")
             app_state.target_crs.value = crs
             validation_message.value = f"✓ Using raster CRS: {crs}"
             logger.info("Target CRS set from raster: %s", crs)
- 
+
     def use_vector_crs():
         if app_state.zone_file_info.value:
             crs = app_state.zone_file_info.value.get("crs")
@@ -88,28 +86,12 @@ def ProjectionSelector():
             validation_message.value = f"✓ Using zone CRS: {crs}"
             logger.info("Target CRS set from zone vector: %s", crs)
 
-
     with solara.Column(gap="10px"):
-        # Display current file projections
-        with solara.Card("Current Projections", elevation=2):
-            if app_state.uploaded_file_info.value:
-                solara.Info(
-                    f"Input CRS: {app_state.uploaded_file_info.value.get('crs')}"
-                )
-            else:
-                solara.Warning("No raster file loaded")
-
-            if app_state.zone_file_info.value:
-                solara.Info(f"Zone CRS: {app_state.zone_file_info.value.get('crs')}")
-            elif app_state.zone_file_path.value:
-                solara.Warning("Vector file has no CRS defined")
-
         # Projection selection mode
         with solara.Card("Target Projection", elevation=2):
-            solara.Markdown("""
-            Choose the target coordinate reference system for processing.
-            Data will be reprojected to this CRS before zonal statistics calculation.
-            """)
+            solara.Markdown(
+                """Choose the target coordinate reference system for processing. Data will be reprojected to this CRS before zonal statistics calculation."""
+            )
 
             # Radio button for selection mode
             solara.Select(
@@ -130,7 +112,6 @@ def ProjectionSelector():
                         on_value=epsg_input.set,
                         continuous_update=False,
                     )
-
 
                     solara.Button(
                         label="Apply EPSG",
@@ -154,7 +135,6 @@ def ProjectionSelector():
                         continuous_update=False,
                         rows=8,
                     )
-
 
                     solara.Button(
                         label="Apply WKT",
@@ -196,7 +176,6 @@ def ProjectionSelector():
 
         # Quick actions
         with solara.Card("Quick Actions", elevation=2):
-
             with solara.Row():
                 solara.Button(
                     label="Use Raster CRS",
